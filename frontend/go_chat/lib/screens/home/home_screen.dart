@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
-import '../../services/auth_service.dart';
 import 'widgets/conversations_sidebar.dart';
 import 'widgets/chat_area.dart';
 

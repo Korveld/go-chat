@@ -306,7 +306,3 @@ flutter test --coverage
 ## License
 
 MIT
-
----
-
-**Ready to add WebSocket real-time messaging?** Let me know when you want to implement that!

@@ -104,6 +104,28 @@ class Conversation {
     );
     return otherUser.avatar;
   }
+
+  Conversation copyWith({
+    int? id,
+    String? type,
+    String? name,
+    String? avatar,
+    List<User>? participants,
+    Message? lastMessage,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Conversation(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      name: name ?? this.name,
+      avatar: avatar ?? this.avatar,
+      participants: participants ?? this.participants,
+      lastMessage: lastMessage ?? this.lastMessage,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 // lib/models/message.dart
@@ -154,4 +176,37 @@ class Message {
       'type': type,
     };
   }
+}
+
+// WebSocket incoming message wrapper
+sealed class WsIncomingMessage {
+  factory WsIncomingMessage.fromJson(Map<String, dynamic> json) {
+    switch (json['type']) {
+      case 'new_message':
+        return WsNewMessage(Message.fromJson(json['message']));
+      case 'typing':
+        return WsTypingIndicator(
+          conversationId: json['conversation_id'],
+          userId: json['user_id'],
+        );
+      default:
+        return WsUnknown(json);
+    }
+  }
+}
+
+class WsNewMessage implements WsIncomingMessage {
+  final Message message;
+  WsNewMessage(this.message);
+}
+
+class WsTypingIndicator implements WsIncomingMessage {
+  final int conversationId;
+  final int userId;
+  WsTypingIndicator({required this.conversationId, required this.userId});
+}
+
+class WsUnknown implements WsIncomingMessage {
+  final Map<String, dynamic> raw;
+  WsUnknown(this.raw);
 }

@@ -62,12 +62,20 @@ func (h *Hub) Run() {
 			h.userClients[client.userID] = client
 			log.Printf("Client connected: User ID %d", client.userID)
 
+			// Set user online
+			database.DB.Model(&models.User{}).Where("id = ?", client.userID).
+				Updates(map[string]interface{}{"status": "online", "last_seen": time.Now()})
+
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				delete(h.userClients, client.userID)
 				close(client.send)
 				log.Printf("Client disconnected: User ID %d", client.userID)
+
+				// Set user offline
+				database.DB.Model(&models.User{}).Where("id = ?", client.userID).
+					Updates(map[string]interface{}{"status": "offline", "last_seen": time.Now()})
 			}
 
 		case message := <-h.broadcast:

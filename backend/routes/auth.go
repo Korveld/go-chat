@@ -41,7 +41,7 @@ func Register(c *gin.Context) {
 		Username: input.Username,
 		Email:    input.Email,
 		Phone:    input.Phone,
-		Status:   "online",
+		Status:   "offline",
 		LastSeen: time.Now(),
 	}
 
@@ -84,12 +84,6 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
-
-	// Update status and last seen
-	database.DB.Model(&user).Updates(map[string]interface{}{
-		"status":    "online",
-		"last_seen": time.Now(),
-	})
 
 	token, err := generateToken(user.ID)
 	if err != nil {
@@ -163,11 +157,7 @@ func Logout(c *gin.Context) {
 		return
 	}
 
-	// Update user status to offline
-	database.DB.Model(&user).Updates(map[string]interface{}{
-		"status":    "offline",
-		"last_seen": time.Now(),
-	})
+	// Note: User status is set to offline by WebSocket disconnect handler
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Logged out successfully",

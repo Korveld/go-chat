@@ -2,15 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../services/api_service.dart';
 import '../../../models/user.dart';
 import '../../../services/auth_service.dart';
+import '../../../providers/conversations_provider.dart';
 import '../home_screen.dart';
-import 'conversations_sidebar.dart';
 
 final usersProvider = FutureProvider<List<User>>((ref) async {
   final api = ref.read(apiServiceProvider);
-  return await api.getUsers();
+  return api.getUsers();
 });
 
 class NewChatDialog extends ConsumerStatefulWidget {
@@ -34,11 +33,9 @@ class _NewChatDialogState extends ConsumerState<NewChatDialog> {
       );
 
       if (mounted) {
-        // Select the new conversation
+        // Add conversation to the list and select it
+        ref.read(conversationsNotifierProvider.notifier).addConversation(conversation);
         ref.read(selectedConversationProvider.notifier).state = conversation.id;
-
-        // Refresh conversations list
-        ref.invalidate(conversationsProvider);
 
         Navigator.pop(context);
       }

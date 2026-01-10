@@ -1,17 +1,11 @@
 // lib/screens/home/widgets/chat_area.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../services/api_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../models/user.dart';
+import '../../../providers/messages_provider.dart';
 import 'widgets/message_bubble.dart';
-
-final messagesProvider = FutureProvider.family<List<Message>, int>((ref, conversationId) async {
-  final api = ref.read(apiServiceProvider);
-  return await api.getMessages(conversationId);
-});
 
 class ChatArea extends ConsumerStatefulWidget {
   final int conversationId;
@@ -25,6 +19,26 @@ class ChatArea extends ConsumerStatefulWidget {
 class _ChatAreaState extends ConsumerState<ChatArea> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  int? _previousMessageCount;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(messagesNotifierProvider.notifier).loadMessages(widget.conversationId);
+    });
+  }
+
+  @override
+  void didUpdateWidget(ChatArea oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.conversationId != widget.conversationId) {
+      // Delay to avoid modifying provider during build
+      Future.microtask(() {
+        ref.read(messagesNotifierProvider.notifier).loadMessages(widget.conversationId);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -45,8 +59,16 @@ class _ChatAreaState extends ConsumerState<ChatArea> {
 
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
+    final messages = ref.watch(conversationMessagesProvider(widget.conversationId));
+    final isLoading = ref.watch(conversationLoadingProvider(widget.conversationId));
+    final error = ref.watch(conversationErrorProvider(widget.conversationId));
     final authState = ref.watch(authNotifierProvider);
+
+    // Auto-scroll when new messages arrive
+    if (_previousMessageCount != null && messages.length > _previousMessageCount!) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    }
+    _previousMessageCount = messages.length;
 
     return Container(
       color: AppColors.background,
@@ -95,80 +117,7 @@ class _ChatAreaState extends ConsumerState<ChatArea> {
 
           // Messages
           Expanded(
-            child: messagesAsync.when(
-              data: (messages) {
-                if (messages.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No messages yet',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Send a message to start the conversation',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
-                final currentUserId = authState.value?.id ?? 0;
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isMe = message.senderId == currentUserId;
-                    final showAvatar = index == 0 ||
-                        messages[index - 1].senderId != message.senderId;
-
-                    return MessageBubble(
-                      message: message,
-                      isMe: isMe,
-                      showAvatar: showAvatar,
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, color: AppColors.error, size: 48),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Failed to load messages',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                    TextButton(
-                      onPressed: () => ref.refresh(messagesProvider(widget.conversationId)),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            child: _buildMessagesArea(messages, isLoading, error, authState),
           ),
 
           // Message Input
@@ -228,9 +177,97 @@ class _ChatAreaState extends ConsumerState<ChatArea> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    // TODO: Send message via WebSocket
-    print('Sending message: $text');
+    ref.read(messagesNotifierProvider.notifier).sendMessage(
+      widget.conversationId,
+      text,
+    );
 
     _messageController.clear();
+  }
+
+  Widget _buildMessagesArea(
+    List<Message> messages,
+    bool isLoading,
+    String? error,
+    AsyncValue<User?> authState,
+  ) {
+    if (isLoading && messages.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null && messages.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: AppColors.error, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load messages',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            TextButton(
+              onPressed: () => ref
+                  .read(messagesNotifierProvider.notifier)
+                  .loadMessages(widget.conversationId),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (messages.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline,
+              size: 64,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No messages yet',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Send a message to start the conversation',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    final currentUserId = authState.value?.id ?? 0;
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        final isMe = message.senderId == currentUserId;
+        final showAvatar =
+            index == 0 || messages[index - 1].senderId != message.senderId;
+
+        return MessageBubble(
+          message: message,
+          isMe: isMe,
+          showAvatar: showAvatar,
+        );
+      },
+    );
   }
 }

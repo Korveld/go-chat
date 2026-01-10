@@ -1,11 +1,11 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'services/auth_service.dart';
+import 'providers/websocket_provider.dart';
 
 void main() {
   runApp(
@@ -21,6 +21,9 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
+
+    // Initialize WebSocket connection when authenticated
+    ref.watch(webSocketConnectionProvider);
 
     return MaterialApp(
       title: 'Chat App',

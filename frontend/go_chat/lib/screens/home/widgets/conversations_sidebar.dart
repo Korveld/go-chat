@@ -4,15 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/auth_service.dart';
-import '../../../services/api_service.dart';
 import '../../../models/user.dart';
+import '../../../providers/conversations_provider.dart';
 import '../home_screen.dart';
 import 'new_chat_dialog.dart';
-
-final conversationsProvider = FutureProvider<List<Conversation>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  return await api.getConversations();
-});
 
 class ConversationsSidebar extends ConsumerWidget {
   const ConversationsSidebar({super.key});
@@ -20,7 +15,7 @@ class ConversationsSidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
-    final conversationsAsync = ref.watch(conversationsProvider);
+    final conversationsAsync = ref.watch(conversationsNotifierProvider);
     final selectedConversation = ref.watch(selectedConversationProvider);
 
     return Container(
@@ -147,7 +142,9 @@ class ConversationsSidebar extends ConsumerWidget {
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                     TextButton(
-                      onPressed: () => ref.refresh(conversationsProvider),
+                      onPressed: () => ref
+                          .read(conversationsNotifierProvider.notifier)
+                          .loadConversations(),
                       child: const Text('Retry'),
                     ),
                   ],
