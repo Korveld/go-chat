@@ -43,7 +43,7 @@ func Connect() {
 	}
 
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC options='--client_encoding=UTF8'",
 		host, user, password, dbname, port,
 	)
 
