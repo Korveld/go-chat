@@ -73,6 +73,10 @@ cd frontend/go_chat
 # Get dependencies
 flutter pub get
 
+# Copy environment file and configure backend URL
+cp .env.example .env
+# Edit .env if connecting to a different backend
+
 # Run code generation
 dart run build_runner build --delete-conflicting-outputs
 
@@ -125,7 +129,9 @@ All routes are prefixed with `/api/v1`.
 
 ## Environment Variables
 
-Create a `.env` file in the `backend/` directory:
+### Backend
+
+Create a `.env` file in `backend/`:
 
 ```env
 PORT=8080
@@ -135,6 +141,15 @@ DB_PASSWORD=your_password
 DB_NAME=go_chat
 DB_PORT=5432
 JWT_SECRET=your_secret_key
+```
+
+### Frontend
+
+Create a `.env` file in `frontend/go_chat/`:
+
+```env
+API_BASE_URL=http://localhost:8080/api/v1
+WS_BASE_URL=ws://localhost:8080/api/v1/ws
 ```
 
 ## Database Commands

@@ -64,6 +64,10 @@ cd frontend/go_chat
 # Get dependencies
 flutter pub get
 
+# Copy environment file and configure backend URL
+cp .env.example .env
+# Edit .env if needed (defaults to localhost:8080)
+
 # Run code generation (for freezed/json_serializable)
 dart run build_runner build --delete-conflicting-outputs
 
@@ -102,7 +106,7 @@ WebSocket message types: `message` (new chat message), `typing` (typing indicato
 - **lib/models/**: Data models (User, Conversation, Message)
 - **lib/core/theme/**: App theming (dark theme default)
 
-State management uses Riverpod. API base URL is hardcoded to `http://localhost:8080/api/v1`.
+State management uses Riverpod. API base URL is configured via `.env` file (see `lib/core/config/env_config.dart`).
 
 ## API Routes
 

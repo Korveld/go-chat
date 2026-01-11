@@ -2,9 +2,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/user.dart';
+import '../core/config/env_config.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8080/api/v1';
+  static String get baseUrl => EnvConfig.apiBaseUrl;
   String? _token;
 
   void setToken(String token) {

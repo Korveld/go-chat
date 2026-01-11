@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
+import '../core/config/env_config.dart';
 
 class WebSocketService {
-  static const String _wsBaseUrl = 'ws://localhost:8080/api/v1/ws';
+  static String get _wsBaseUrl => EnvConfig.wsBaseUrl;
 
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
