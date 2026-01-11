@@ -46,8 +46,11 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       } else {
         state = const AsyncValue.data(null);
       }
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e) {
+      // Token is invalid or user doesn't exist - clear token and go to login
+      await _storage.delete(key: 'auth_token');
+      _apiService.clearToken();
+      state = const AsyncValue.data(null);
     }
   }
 

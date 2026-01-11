@@ -76,8 +76,9 @@ class MessageBubble extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      SelectableText(
                         message.content,
+                        selectionColor: isMe ? AppColors.background : AppColors.primary,
                         style: TextStyle(
                           color: isMe ? Colors.white : AppColors.textPrimary,
                           fontSize: 14,

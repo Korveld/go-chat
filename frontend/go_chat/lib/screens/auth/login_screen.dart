@@ -67,10 +67,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo/Title
-                  Icon(
-                    Icons.chat_bubble,
-                    size: 80,
-                    color: AppColors.primary,
+                  // Icon(
+                  //   Icons.chat_bubble,
+                  //   size: 80,
+                  //   color: AppColors.primary,
+                  // ),
+                  Image(
+                    image: AssetImage('assets/images/app_icon.png'),
+                    width: 80,
+                    height: 80,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -183,15 +188,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
+                        SelectableText(
                           'Email: alice@example.com',
+                          selectionColor: AppColors.textPrimary,
                           style: TextStyle(
                             color: AppColors.textMuted,
                             fontSize: 12,
                           ),
                         ),
-                        Text(
+                        SelectableText(
                           'Password: password123',
+                          selectionColor: AppColors.textPrimary,
                           style: TextStyle(
                             color: AppColors.textMuted,
                             fontSize: 12,
