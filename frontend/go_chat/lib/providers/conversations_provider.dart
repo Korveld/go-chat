@@ -11,11 +11,11 @@ class ConversationsNotifier extends StateNotifier<AsyncValue<List<Conversation>>
   final ApiService _apiService;
   final WebSocketService _wsService;
   StreamSubscription? _wsSubscription;
+  bool _isLoading = false;
 
   ConversationsNotifier(this._apiService, this._wsService)
       : super(const AsyncValue.loading()) {
     _subscribeToWebSocket();
-    loadConversations();
   }
 
   void _subscribeToWebSocket() {
@@ -78,12 +78,18 @@ class ConversationsNotifier extends StateNotifier<AsyncValue<List<Conversation>>
   }
 
   Future<void> loadConversations() async {
+    // Prevent duplicate loads
+    if (_isLoading) return;
+    _isLoading = true;
+
     state = const AsyncValue.loading();
     try {
       final conversations = await _apiService.getConversations();
       state = AsyncValue.data(conversations);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
+    } finally {
+      _isLoading = false;
     }
   }
 
@@ -108,4 +114,16 @@ final conversationsNotifierProvider =
   final apiService = ref.read(apiServiceProvider);
   final wsService = ref.read(webSocketServiceProvider);
   return ConversationsNotifier(apiService, wsService);
+});
+
+/// Provider that initializes conversations when user is authenticated
+final conversationsInitProvider = Provider<void>((ref) {
+  final authState = ref.watch(authNotifierProvider);
+
+  authState.whenData((user) {
+    if (user != null) {
+      // User is authenticated, load conversations
+      ref.read(conversationsNotifierProvider.notifier).loadConversations();
+    }
+  });
 });

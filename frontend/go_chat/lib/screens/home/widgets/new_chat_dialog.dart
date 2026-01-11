@@ -1,4 +1,5 @@
 // lib/screens/home/widgets/new_chat_dialog.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
@@ -6,11 +7,6 @@ import '../../../models/user.dart';
 import '../../../services/auth_service.dart';
 import '../../../providers/conversations_provider.dart';
 import '../home_screen.dart';
-
-final usersProvider = FutureProvider<List<User>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  return api.getUsers();
-});
 
 class NewChatDialog extends ConsumerStatefulWidget {
   const NewChatDialog({super.key});
@@ -20,7 +16,60 @@ class NewChatDialog extends ConsumerStatefulWidget {
 }
 
 class _NewChatDialogState extends ConsumerState<NewChatDialog> {
+  final _searchController = TextEditingController();
+  List<User> _searchResults = [];
   bool _isLoading = false;
+  bool _isSearching = false;
+  bool _hasSearched = false;
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _hasSearched = false;
+        _isSearching = false;
+      });
+      return;
+    }
+
+    setState(() => _isSearching = true);
+
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      _searchUsers(query.trim());
+    });
+  }
+
+  Future<void> _searchUsers(String query) async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final users = await api.searchUsers(query);
+      if (mounted) {
+        setState(() {
+          _searchResults = users;
+          _hasSearched = true;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _hasSearched = true;
+          _isSearching = false;
+        });
+      }
+    }
+  }
 
   Future<void> _startChat(User user) async {
     setState(() => _isLoading = true);
@@ -57,8 +106,6 @@ class _NewChatDialogState extends ConsumerState<NewChatDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final usersAsync = ref.watch(usersProvider);
-
     return Dialog(
       backgroundColor: AppColors.surface,
       child: Container(
@@ -86,11 +133,22 @@ class _NewChatDialogState extends ConsumerState<NewChatDialog> {
             ),
             const SizedBox(height: 24),
 
-            // Search bar (for future implementation)
+            // Search bar
             TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Search users...',
+                hintText: 'Search by username, email or phone...',
                 prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear, color: AppColors.textMuted),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
                 filled: true,
                 fillColor: AppColors.surfaceLight,
               ),
@@ -99,52 +157,80 @@ class _NewChatDialogState extends ConsumerState<NewChatDialog> {
 
             // Users list
             Expanded(
-              child: usersAsync.when(
-                data: (users) {
-                  if (users.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No users found',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: users.length,
-                    itemBuilder: (context, index) {
-                      final user = users[index];
-                      return UserTile(
-                        user: user,
-                        onTap: () => _startChat(user),
-                        isLoading: _isLoading,
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, color: AppColors.error),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Failed to load users',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
-                      TextButton(
-                        onPressed: () => ref.refresh(usersProvider),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              child: _buildContent(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isSearching) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (!_hasSearched) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_search,
+              size: 64,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Search for users',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Enter a username, email or phone number',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_searchResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 48,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No users found',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) {
+        final user = _searchResults[index];
+        return UserTile(
+          user: user,
+          onTap: () => _startChat(user),
+          isLoading: _isLoading,
+        );
+      },
     );
   }
 }

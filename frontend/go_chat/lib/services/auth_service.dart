@@ -68,10 +68,10 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     }
   }
 
-  Future<void> register(String username, String email, String password) async {
+  Future<void> register(String username, String email, String password, String phone) async {
     state = const AsyncValue.loading();
     try {
-      final response = await _apiService.register(username, email, password);
+      final response = await _apiService.register(username, email, password, phone);
       final token = response['token'];
       final user = User.fromJson(response['user']);
 

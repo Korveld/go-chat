@@ -47,6 +47,7 @@ class ApiService {
       String username,
       String email,
       String password,
+      String phone,
       ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/register'),
@@ -55,6 +56,7 @@ class ApiService {
         'username': username,
         'email': email,
         'password': password,
+        'phone': phone,
       }),
     );
 
@@ -104,6 +106,22 @@ class ApiService {
           .toList();
     } else {
       throw Exception('Failed to get users');
+    }
+  }
+
+  Future<List<User>> searchUsers(String query) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/users?search=${Uri.encodeComponent(query)}'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return (data['users'] as List)
+          .map((u) => User.fromJson(u))
+          .toList();
+    } else {
+      throw Exception('Failed to search users');
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/auth_service.dart';
 import '../../../models/user.dart';
+import '../../../providers/conversations_provider.dart';
 import '../../../providers/messages_provider.dart';
 import 'widgets/message_bubble.dart';
 
@@ -49,11 +50,7 @@ class _ChatAreaState extends ConsumerState<ChatArea> {
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     }
   }
 
@@ -63,12 +60,24 @@ class _ChatAreaState extends ConsumerState<ChatArea> {
     final isLoading = ref.watch(conversationLoadingProvider(widget.conversationId));
     final error = ref.watch(conversationErrorProvider(widget.conversationId));
     final authState = ref.watch(authNotifierProvider);
+    final conversationsState = ref.watch(conversationsNotifierProvider);
+
+    final currentUserId = authState.value?.id ?? 0;
+    final conversation = conversationsState.value?.firstWhere(
+      (c) => c.id == widget.conversationId,
+      orElse: () => conversationsState.value!.first,
+    );
 
     // Auto-scroll when new messages arrive
     if (_previousMessageCount != null && messages.length > _previousMessageCount!) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     }
     _previousMessageCount = messages.length;
+
+    // Get display name and online status
+    final displayName = conversation?.getDisplayName(currentUserId) ?? 'Chat';
+    final isGroup = conversation?.type == 'group';
+    final isOnline = conversation?.isOtherUserOnline(currentUserId) ?? false;
 
     return Container(
       color: AppColors.background,
@@ -87,27 +96,39 @@ class _ChatAreaState extends ConsumerState<ChatArea> {
               children: [
                 CircleAvatar(
                   backgroundColor: AppColors.primary,
-                  child: const Icon(Icons.person, color: Colors.white),
+                  child: Icon(
+                    isGroup ? Icons.group : Icons.person,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Chat',
-                        style: TextStyle(
+                      Text(
+                        displayName,
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
                       ),
-                      Text(
-                        'Online',
-                        style: TextStyle(
-                          color: AppColors.online,
-                          fontSize: 12,
+                      if (!isGroup)
+                        Text(
+                          isOnline ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            color: isOnline ? AppColors.online : AppColors.textMuted,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
+                      if (isGroup)
+                        Text(
+                          '${conversation?.participants.length ?? 0} members',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
                     ],
                   ),
                 ),

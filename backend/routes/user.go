@@ -23,8 +23,17 @@ func GetUsers(c *gin.Context) {
 	currentUser, _ := c.Get("user")
 	currentUserData := currentUser.(models.User)
 
+	search := c.Query("search")
+
 	var users []models.User
-	if err := database.DB.Where("id != ?", currentUserData.ID).Find(&users).Error; err != nil {
+	query := database.DB.Where("id != ?", currentUserData.ID)
+
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where("username ILIKE ? OR email ILIKE ? OR phone ILIKE ?", searchPattern, searchPattern, searchPattern)
+	}
+
+	if err := query.Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch users"})
 		return
 	}

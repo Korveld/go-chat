@@ -6,11 +6,14 @@ import '../../../core/theme/app_theme.dart';
 import '../../../services/auth_service.dart';
 import '../../../models/user.dart';
 import '../../../providers/conversations_provider.dart';
+import '../../../providers/unread_provider.dart';
 import '../home_screen.dart';
 import 'new_chat_dialog.dart';
 
 class ConversationsSidebar extends ConsumerWidget {
-  const ConversationsSidebar({super.key});
+  final double width;
+
+  const ConversationsSidebar({super.key, required this.width});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,7 +22,7 @@ class ConversationsSidebar extends ConsumerWidget {
     final selectedConversation = ref.watch(selectedConversationProvider);
 
     return Container(
-      width: 300,
+      width: width,
       color: AppColors.sidebar,
       child: Column(
         children: [
@@ -125,6 +128,9 @@ class ConversationsSidebar extends ConsumerWidget {
                       onTap: () {
                         ref.read(selectedConversationProvider.notifier).state =
                             conversation.id;
+                        // Clear unread count when selecting conversation
+                        ref.read(unreadNotifierProvider.notifier).clearUnread(
+                            conversation.id);
                       },
                     );
                   },
@@ -158,7 +164,7 @@ class ConversationsSidebar extends ConsumerWidget {
   }
 }
 
-class ConversationTile extends StatelessWidget {
+class ConversationTile extends ConsumerWidget {
   final Conversation conversation;
   final int currentUserId;
   final bool isSelected;
@@ -173,11 +179,12 @@ class ConversationTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final displayName = conversation.getDisplayName(currentUserId);
     final lastMessage = conversation.lastMessage;
     final isOnline = conversation.isOtherUserOnline(currentUserId);
     final showStatus = conversation.type == 'direct';
+    final unreadCount = ref.watch(unreadCountProvider(conversation.id));
 
     return Material(
       color: isSelected ? AppColors.surfaceLight : Colors.transparent,
@@ -229,8 +236,8 @@ class ConversationTile extends StatelessWidget {
                   children: [
                     Text(
                       displayName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
+                      style: TextStyle(
+                        fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
                         fontSize: 15,
                       ),
                       maxLines: 1,
@@ -241,7 +248,11 @@ class ConversationTile extends StatelessWidget {
                       Text(
                         lastMessage.content,
                         style: TextStyle(
-                          color: AppColors.textSecondary,
+                          color: unreadCount > 0
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontWeight:
+                              unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
                           fontSize: 13,
                         ),
                         maxLines: 1,
@@ -252,15 +263,41 @@ class ConversationTile extends StatelessWidget {
                 ),
               ),
 
-              // Time
-              if (lastMessage != null)
-                Text(
-                  _formatTime(lastMessage.createdAt),
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                  ),
-                ),
+              const SizedBox(width: 8),
+
+              // Time and unread badge
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (lastMessage != null)
+                    Text(
+                      _formatTime(lastMessage.createdAt),
+                      style: TextStyle(
+                        color: unreadCount > 0 ? AppColors.primary : AppColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  if (unreadCount > 0) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        unreadCount > 99 ? '99+' : unreadCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),

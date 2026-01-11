@@ -5,9 +5,16 @@ import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'providers/websocket_provider.dart';
+import 'providers/notification_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notification service (handles platform checks internally)
+  await NotificationService().init();
+
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -24,6 +31,9 @@ class MyApp extends ConsumerWidget {
 
     // Initialize WebSocket connection when authenticated
     ref.watch(webSocketConnectionProvider);
+
+    // Initialize notification listener when authenticated
+    ref.watch(notificationListenerProvider);
 
     return MaterialApp(
       title: 'Chat App',
