@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Build artifacts
+bin/
+*.exe
+
+# Environment files (use docker-compose env instead)
+.env
+
+# Documentation
+*.md
+!README.md
+
+# Air (hot reload)
+tmp/
+gin-bin
+
+# Test files
+*_test.go
