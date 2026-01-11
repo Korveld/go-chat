@@ -53,6 +53,9 @@ class MessagesNotifier extends StateNotifier<MessagesState> {
       case WsTypingIndicator():
         // Could handle typing indicator here if needed
         break;
+      case WsStatusChange():
+        // Status changes are handled by ConversationsNotifier
+        break;
       case WsUnknown():
         break;
     }

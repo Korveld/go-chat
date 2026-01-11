@@ -193,7 +193,7 @@ JWT tokens are stored securely using `flutter_secure_storage` and automatically 
 
 ## Coming Soon
 
-- [ ] WebSocket real-time messaging
+- [✅] WebSocket real-time messaging
 - [ ] Message status indicators (sent/delivered/read)
 - [ ] Typing indicators
 - [ ] File/image attachments

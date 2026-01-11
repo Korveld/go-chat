@@ -176,6 +176,8 @@ class ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayName = conversation.getDisplayName(currentUserId);
     final lastMessage = conversation.lastMessage;
+    final isOnline = conversation.isOtherUserOnline(currentUserId);
+    final showStatus = conversation.type == 'direct';
 
     return Material(
       color: isSelected ? AppColors.surfaceLight : Colors.transparent,
@@ -185,17 +187,38 @@ class ConversationTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              // Avatar
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  displayName[0].toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+              // Avatar with status indicator
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primary,
+                    child: Text(
+                      displayName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
+                  if (showStatus)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: isOnline ? AppColors.online : AppColors.offline,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.sidebar,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 12),
 

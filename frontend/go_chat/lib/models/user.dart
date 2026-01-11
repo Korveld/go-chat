@@ -41,6 +41,26 @@ class User {
       'last_seen': lastSeen.toIso8601String(),
     };
   }
+
+  User copyWith({
+    int? id,
+    String? username,
+    String? email,
+    String? phone,
+    String? avatar,
+    String? status,
+    DateTime? lastSeen,
+  }) {
+    return User(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      avatar: avatar ?? this.avatar,
+      status: status ?? this.status,
+      lastSeen: lastSeen ?? this.lastSeen,
+    );
+  }
 }
 
 // lib/models/conversation.dart
@@ -126,6 +146,16 @@ class Conversation {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  /// Returns true if the other user in a direct message is online
+  bool isOtherUserOnline(int currentUserId) {
+    if (type != 'direct') return false;
+    final otherUser = participants.firstWhere(
+      (u) => u.id != currentUserId,
+      orElse: () => participants.first,
+    );
+    return otherUser.status == 'online';
+  }
 }
 
 // lib/models/message.dart
@@ -189,6 +219,11 @@ sealed class WsIncomingMessage {
           conversationId: json['conversation_id'],
           userId: json['user_id'],
         );
+      case 'status_change':
+        return WsStatusChange(
+          userId: json['user_id'],
+          status: json['status'],
+        );
       default:
         return WsUnknown(json);
     }
@@ -204,6 +239,12 @@ class WsTypingIndicator implements WsIncomingMessage {
   final int conversationId;
   final int userId;
   WsTypingIndicator({required this.conversationId, required this.userId});
+}
+
+class WsStatusChange implements WsIncomingMessage {
+  final int userId;
+  final String status;
+  WsStatusChange({required this.userId, required this.status});
 }
 
 class WsUnknown implements WsIncomingMessage {

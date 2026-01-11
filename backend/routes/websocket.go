@@ -66,6 +66,9 @@ func (h *Hub) Run() {
 			database.DB.Model(&models.User{}).Where("id = ?", client.userID).
 				Updates(map[string]interface{}{"status": "online", "last_seen": time.Now()})
 
+			// Broadcast status change to all clients
+			h.broadcastStatusChange(client.userID, "online")
+
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
@@ -76,6 +79,9 @@ func (h *Hub) Run() {
 				// Set user offline
 				database.DB.Model(&models.User{}).Where("id = ?", client.userID).
 					Updates(map[string]interface{}{"status": "offline", "last_seen": time.Now()})
+
+				// Broadcast status change to all clients
+				h.broadcastStatusChange(client.userID, "offline")
 			}
 
 		case message := <-h.broadcast:
@@ -88,6 +94,21 @@ func (h *Hub) Run() {
 					delete(h.userClients, client.userID)
 				}
 			}
+		}
+	}
+}
+
+func (h *Hub) broadcastStatusChange(userID uint, status string) {
+	statusMsg, _ := json.Marshal(map[string]interface{}{
+		"type":    "status_change",
+		"user_id": userID,
+		"status":  status,
+	})
+
+	for client := range h.clients {
+		select {
+		case client.send <- statusMsg:
+		default:
 		}
 	}
 }

@@ -30,6 +30,8 @@ class ConversationsNotifier extends StateNotifier<AsyncValue<List<Conversation>>
         _updateConversationLastMessage(message);
       case WsTypingIndicator():
         break;
+      case WsStatusChange(:final userId, :final status):
+        _updateUserStatus(userId, status);
       case WsUnknown():
         break;
     }
@@ -53,6 +55,23 @@ class ConversationsNotifier extends StateNotifier<AsyncValue<List<Conversation>>
         final bTime = b.lastMessage?.createdAt ?? b.updatedAt;
         return bTime.compareTo(aTime);
       });
+
+      state = AsyncValue.data(updatedList);
+    });
+  }
+
+  void _updateUserStatus(int userId, String status) {
+    state.whenData((conversations) {
+      final updatedList = conversations.map((c) {
+        final updatedParticipants = c.participants.map((user) {
+          if (user.id == userId) {
+            return user.copyWith(status: status);
+          }
+          return user;
+        }).toList();
+
+        return c.copyWith(participants: updatedParticipants);
+      }).toList();
 
       state = AsyncValue.data(updatedList);
     });
