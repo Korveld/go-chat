@@ -14,6 +14,9 @@ const double _minSidebarWidth = 200;
 const double _maxSidebarWidth = 500;
 const double _defaultSidebarWidth = 300;
 
+// Mobile breakpoint
+const double _mobileBreakpoint = 600;
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -41,35 +44,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.watch(unreadListenerProvider);
 
     final selectedConversation = ref.watch(selectedConversationProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < _mobileBreakpoint;
+
+    // Set background color based on active view for edge-to-edge effect
+    final backgroundColor = isMobile
+        ? (selectedConversation == null ? AppColors.sidebar : AppColors.surface)
+        : null;
 
     return Scaffold(
-      body: Row(
-        children: [
-          // Left sidebar - Conversations list
-          ConversationsSidebar(width: _sidebarWidth),
+      backgroundColor: backgroundColor,
+      body: isMobile
+          ? SafeArea(child: _buildMobileLayout(selectedConversation))
+          : _buildDesktopLayout(selectedConversation),
+    );
+  }
 
-          // Resize handle
-          MouseRegion(
-            cursor: SystemMouseCursors.resizeColumn,
-            child: GestureDetector(
-              onHorizontalDragStart: (_) => setState(() => _isResizing = true),
-              onHorizontalDragUpdate: _onDragUpdate,
-              onHorizontalDragEnd: (_) => setState(() => _isResizing = false),
-              child: Container(
-                width: 4,
-                color: _isResizing ? AppColors.primary : AppColors.divider,
-              ),
+  Widget _buildMobileLayout(int? selectedConversation) {
+    // On mobile: show sidebar by default, show chat when conversation selected
+    if (selectedConversation == null) {
+      return const ConversationsSidebar(width: double.infinity);
+    }
+    return ChatArea(
+      conversationId: selectedConversation,
+      showBackButton: true,
+      onBack: () {
+        ref.read(selectedConversationProvider.notifier).state = null;
+      },
+    );
+  }
+
+  Widget _buildDesktopLayout(int? selectedConversation) {
+    return Row(
+      children: [
+        // Left sidebar - Conversations list
+        ConversationsSidebar(width: _sidebarWidth),
+
+        // Resize handle
+        MouseRegion(
+          cursor: SystemMouseCursors.resizeColumn,
+          child: GestureDetector(
+            onHorizontalDragStart: (_) => setState(() => _isResizing = true),
+            onHorizontalDragUpdate: _onDragUpdate,
+            onHorizontalDragEnd: (_) => setState(() => _isResizing = false),
+            child: Container(
+              width: 4,
+              color: _isResizing ? AppColors.primary : AppColors.divider,
             ),
           ),
+        ),
 
-          // Right area - Chat messages
-          Expanded(
-            child: selectedConversation == null
-                ? const EmptyState()
-                : ChatArea(conversationId: selectedConversation),
-          ),
-        ],
-      ),
+        // Right area - Chat messages
+        Expanded(
+          child: selectedConversation == null
+              ? const EmptyState()
+              : ChatArea(conversationId: selectedConversation),
+        ),
+      ],
     );
   }
 }

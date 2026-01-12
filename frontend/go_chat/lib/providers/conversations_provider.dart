@@ -122,8 +122,10 @@ final conversationsInitProvider = Provider<void>((ref) {
 
   authState.whenData((user) {
     if (user != null) {
-      // User is authenticated, load conversations
-      ref.read(conversationsNotifierProvider.notifier).loadConversations();
+      // Defer to avoid modifying provider during build
+      Future.microtask(() {
+        ref.read(conversationsNotifierProvider.notifier).loadConversations();
+      });
     }
   });
 });

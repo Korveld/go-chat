@@ -10,8 +10,15 @@ import 'widgets/message_bubble.dart';
 
 class ChatArea extends ConsumerStatefulWidget {
   final int conversationId;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
-  const ChatArea({super.key, required this.conversationId});
+  const ChatArea({
+    super.key,
+    required this.conversationId,
+    this.showBackButton = false,
+    this.onBack,
+  });
 
   @override
   ConsumerState<ChatArea> createState() => _ChatAreaState();
@@ -94,6 +101,15 @@ class _ChatAreaState extends ConsumerState<ChatArea> {
             ),
             child: Row(
               children: [
+                if (widget.showBackButton) ...[
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: widget.onBack,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 CircleAvatar(
                   backgroundColor: AppColors.primary,
                   child: Icon(

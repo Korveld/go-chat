@@ -70,10 +70,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
+      body: SafeArea(
+        top: false, // AppBar handles top
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Form(
               key: _formKey,
@@ -221,6 +223,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ),
           ),
+        ),
         ),
       ),
     );
