@@ -66,7 +66,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 
       state = AsyncValue.data(user);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      // Restore state to unauthenticated so UI doesn't get stuck
+      state = const AsyncValue.data(null);
       rethrow;
     }
   }
@@ -83,7 +84,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 
       state = AsyncValue.data(user);
     } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      // Restore state to unauthenticated so UI doesn't get stuck
+      state = const AsyncValue.data(null);
       rethrow;
     }
   }
